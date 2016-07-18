@@ -18,10 +18,11 @@
 #include <stdlib.h>  // For exit()
 #include <sys/socket.h>  // For socket()
 #include <unistd.h>  // For getuid()
+#include <string.h> // For memset()
+
+#include <netinet/tcp.h>
 
 #include <netinet/ip.h>
-
-struct iphdr *ip = (struct iphdr *) buffer;
 
 void check_root(){
     if(getuid() && geteuid()){
@@ -43,16 +44,38 @@ int main() {
     // make RAW socket
     sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 
+    // socket() fail check
     if(sockfd < 0)  printerror("socket() error");
 
     /* int setsockopt(
-     *      int s,
-     *      int  level,
-     *      int  optname,
-     *      const  void  *optval,
-     *      socklen_t optlen
+     *      int s,                  socket file descriptor
+     *      int  level,             protocol level
+     *      int  optname,           option name
+     *      const  void  *optval,   option value
+     *      socklen_t optlen        option length
      *      );
     */
+    //
+    const int one = 1;
+
+    // setsockopt 의 4번째 인자에는 1을 가르키고 있는 주소를 주어야 하므로,
+    // 1을 가지고 있는 변수 one 을 만든 후, 그 변수의 주소값을 넘겨줌
+    setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, (char *)&one, sizeof(one));
+
+    // OSI 7 Layer에 따르면 Packing 순서는 IP (3계층) -> TCP (4계층) 이므로 IP 헤더가 TCP 헤더보다 먼저 와야함.
+
+    unsigned char packet[40]; // iphdr 20 + tcphdr 20 = 40
+
+    // packet 초기화
+    memset(packet, 0, sizeof(packet));
+
+    // Input tcp header structure
+    struct tcphdr *tcp_header = (struct tcphdr *)(packet + 20);
+
+
+    // Set Source Port to My Birth Day
+    tcp_header->source = htons(1010);  // htons
+
 
 
 
