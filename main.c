@@ -19,7 +19,7 @@
 #include <sys/socket.h>  // For socket()
 #include <unistd.h>  // For getuid()
 #include <string.h> // For memset()
-
+#include <arpa/inet.h> // For inet_addr
 #include <netinet/tcp.h>
 
 #include <netinet/ip.h>
@@ -127,9 +127,7 @@ int main() {
     // Message check var
     tcp_header->check = 1;
 
-
-
-/*
+    /*
   TCP Header Format
 
 
@@ -155,11 +153,80 @@ int main() {
 
 */
 
+    // Input ip header structure
+    struct iphdr *ip_header = (struct iphdr *)packet;
+
+/*
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |Version|  IHL  |Type of Service|          Total Length         |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |         Identification        |Flags|      Fragment Offset    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  Time to Live |    Protocol   |         Header Checksum       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       Source Address                          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Destination Address                        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Options                    |    Padding    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
 
 
+    // ipv4
+    ip_header->version = 4;
+
+    // ip header length
+    ip_header->ihl = 5;
+
+    // Setting Protocol (TCP)
+    ip_header->protocol = IPPROTO_TCP;
+
+    // Setting Packet length
+    ip_header->tot_len = 40;
+
+    // Setting packet id
+    ip_header->id = htons(101);
+
+    // Setting TTL
+    ip_header->ttl = 60;
+
+    // Setting Checksum data
+    ip_header->check = 1;
+
+    // Setting Sender IP
+    ip_header->saddr = inet_addr("123.123.123.123");
+
+    // Setting Receiver IP
+    ip_header->daddr = inet_addr("192.168.1.35");
 
 
+/*  Now Status
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |   4   |   5   |   IPPROTO_TCP |              40               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |              101              |0 0 0|            0            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      60       |       0       |               1               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                     123.123.123.123                           |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                     192.168.1.35                              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                      0                        |      0        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
 
+    struct sockaddr_in address;
+    address.sin_family = AF_INET;
+    address.sin_port = htons(12345);
+    address.sin_addr.s_addr = inet_addr("192.168.1.35");
 
+    // Send packet
+    sendto(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *)&address, sizeof(address));
 
 }
